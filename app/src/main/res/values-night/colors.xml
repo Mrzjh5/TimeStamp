@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark theme colors -->
+    <color name="background_light">#FF1A1A1A</color>
+    <color name="card_light">#B31A1A1A</color>
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FFB3B3B3</color>
+</resources>

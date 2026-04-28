@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary colors -->
+    <color name="primary_blue">#FF00C3FF</color>
+    <color name="success_green_start">#FF4CAF50</color>
+    <color name="success_green_end">#FF8BC34A</color>
+    
+    <!-- Background colors -->
+    <color name="background_light">#FFF8F9FA</color>
+    <color name="background_dark">#FF1A1A1A</color>
+    
+    <!-- Card colors -->
+    <color name="card_light">#B3FFFFFF</color>
+    <color name="card_dark">#B31A1A1A</color>
+    
+    <!-- Text colors -->
+    <color name="text_primary">#FF333333</color>
+    <color name="text_secondary">#FF666666</color>
+    <color name="text_hint">#FF999999</color>
+    
+    <!-- Miui theme colors -->
+    <color name="theme_color_0">#FF00C3FF</color>
+    <color name="theme_color_1">#FFFF6B6B</color>
+    <color name="theme_color_2">#FF4CAF50</color>
+    <color name="theme_color_3">#FFFF9800</color>
+    <color name="theme_color_4">#FF9C27B0</color>
+    <color name="theme_color_5">#FF00BCD4</color>
+    <color name="theme_color_6">#FFE91E63</color>
+    <color name="theme_color_7">#FF3F51B5</color>
+    <color name="theme_color_8">#FF795548</color>
+    <color name="theme_color_9">#FF607D8B</color>
+    <color name="theme_color_10">#FFFFEB3B</color>
+    <color name="theme_color_11">#FF8BC34A</color>
+</resources>
