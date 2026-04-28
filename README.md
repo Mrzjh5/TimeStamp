@@ -124,6 +124,32 @@ com.miui.timesnote/
 - 电池消耗: <0.5%/日
 - 流畅度: 95%时间维持55fps+
 
+## 🚀 自动构建
+
+本项目配置了 GitHub Actions，每次 push 代码会自动构建 APK。
+
+### 使用方法
+
+1. **创建 GitHub 仓库**
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/你的用户名/TimeStamp.git
+git push -u origin main
+```
+
+2. **等待构建完成**
+- 进入 GitHub 仓库 → Actions 标签
+- 约 3-5 分钟后构建完成
+
+3. **下载 APK**
+- 点击构建任务 → Artifacts → 下载 debug-apk
+
+详细说明见 [.github/README.md](.github/README.md)
+
+---
+
 ## 构建要求
 
 - Android SDK: 35+
@@ -139,6 +165,8 @@ cd E:\ZJHJAVA\TimeStamp
 ./gradlew assembleDebug   # Debug构建
 ./gradlew assembleRelease # Release构建
 ```
+
+---
 
 ## 更新日志
 
