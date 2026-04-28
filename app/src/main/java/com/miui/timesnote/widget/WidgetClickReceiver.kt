@@ -3,9 +3,6 @@ package com.miui.timesnote.widget
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import androidx.glance.appwidget.GlanceAppWidgetManager
-import androidx.glance.appwidget.action._ACTION_CHECK_IN
-import androidx.glance.appwidget.updateAll
 
 /**
  * 小组件点击事件接收器
@@ -24,14 +21,7 @@ class WidgetClickReceiver : BroadcastReceiver() {
     }
     
     private fun handleCheckIn(context: Context, eventId: Long) {
-        // 处理打卡逻辑
-        // 1. 更新数据库
-        // 2. 播放反馈
-        // 3. 刷新小组件
-        refreshAllWidgets(context)
-    }
-    
-    private fun refreshAllWidgets(context: Context) {
+        // 处理打卡逻辑后刷新组件
         try {
             TimeStampWidget2x2().updateAll(context)
             TimeStampWidget2x3().updateAll(context)

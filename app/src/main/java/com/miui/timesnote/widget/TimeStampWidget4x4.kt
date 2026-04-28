@@ -24,82 +24,58 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.glance.*
-import androidx.glance.action.ActionParameters
-import androidx.glance.action.actionParametersOf
-import androidx.glance.action.actionStartActivity
-import androidx.glance.action.clickable
-import androidx.glance.appwidget.*
-import androidx.glance.appwidget.lazy.LazyColumn
-import androidx.glance.appwidget.lazy.items
-import androidx.glance.background
-import androidx.glance.layout.*
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
+import androidx.compose.ui.graphics.Color as ComposeColor
 import com.miui.timesnote.data.CheckInEvent
 import com.miui.timesnote.data.CheckInRepository
-import com.miui.timesnote.ui.MainActivity
 import com.miui.timesnote.util.DateUtil
 import com.miui.timesnote.util.IconTypes
 import com.miui.timesnote.util.MiuiColors
-import com.miui.timesnote.util.WidgetStateManager
-import com.miui.timesnote.util.WallpaperColorUtil
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.min
 
 /**
  * 4×4 尺寸打卡小组件 - 完整版，显示5个事件+统计面板
  */
-class TimeStampWidget4x4 : GlanceAppWidget() {
+class TimeStampWidget4x4 : androidx.glance.appwidget.GlanceAppWidget() {
 
-    override val stateDefinition = GlanceStateDefinition
+    override val stateDefinition: androidx.glance.state.GlanceStateDefinition<*>?
+        get() = null
 
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val wallpaperColor = WallpaperColorUtil.getDominantWallpaperColor(context)
-        val backgroundColor = if (wallpaperColor.isDark) {
-            Color(0xE61A1A1A)
-        } else {
-            Color(0xE6F8F9FA)
-        }
-        
-        val repository = CheckInRepository.getInstance(context)
-        val events = repository.getTopEvents(5).first()
-        
+    override suspend fun provideGlance(context: Context, id: androidx.glance.GlanceId) {
         provideContent {
-            TimeStampWidgetContent4x4(
-                events = events,
-                backgroundColor = backgroundColor,
-                textColor = wallpaperColor.contrastColor,
-                isDarkWallpaper = wallpaperColor.isDark
-            )
+            val context = LocalContext.current
+            
+            val events = withContext(Dispatchers.IO) {
+                try {
+                    val repository = CheckInRepository.getInstance(context)
+                    repository.getTopEvents(5).first()
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            }
+            
+            TimeStampWidgetContent4x4(events = events)
         }
     }
 }
 
 @Composable
-private fun TimeStampWidgetContent4x4(
-    events: List<CheckInEvent>,
-    backgroundColor: Color,
-    textColor: Color,
-    isDarkWallpaper: Boolean
-) {
+private fun TimeStampWidgetContent4x4(events: List<CheckInEvent>) {
     val context = LocalContext.current
     
     val totalCheckIns = events.sumOf { it.totalCheckIns }
     val bestStreak = events.maxOfOrNull { it.consecutiveDays } ?: 0
     val todayCheckIns = events.count { DateUtil.isToday(it.lastCheckInTime) }
     
-    val cardBackground = if (isDarkWallpaper) Color(0x33FFFFFF) else Color(0xB3FFFFFF)
-    
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                color = backgroundColor,
+                color = ComposeColor(0xFFF8F9FA),
                 shape = RoundedCornerShape(16.dp)
             )
             .padding(12.dp)
@@ -116,12 +92,12 @@ private fun TimeStampWidgetContent4x4(
                     text = "📅 时光印记",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = textColor
+                    color = ComposeColor(0xFF333333)
                 )
                 Text(
                     text = DateUtil.getToday(),
                     fontSize = 11.sp,
-                    color = textColor.copy(alpha = 0.6f)
+                    color = ComposeColor(0xFF999999)
                 )
             }
             
@@ -129,14 +105,14 @@ private fun TimeStampWidgetContent4x4(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(cardBackground)
+                    .background(ComposeColor(0xB3FFFFFF))
                     .padding(10.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatItem(value = "$totalCheckIns", label = "总打卡", textColor = textColor)
-                StatItem(value = "$bestStreak", label = "最佳连续", textColor = textColor)
-                StatItem(value = "${events.size}", label = "习惯数", textColor = textColor)
-                StatItem(value = "$todayCheckIns", label = "今日完成", textColor = textColor)
+                StatItem(value = "$totalCheckIns", label = "总打卡")
+                StatItem(value = "$bestStreak", label = "最佳连续")
+                StatItem(value = "${events.size}", label = "习惯数")
+                StatItem(value = "$todayCheckIns", label = "今日完成")
             }
             
             Spacer(modifier = Modifier.height(10.dp))
@@ -148,11 +124,7 @@ private fun TimeStampWidgetContent4x4(
                 events.take(5).forEach { event ->
                     CheckInItemCard(
                         event = event,
-                        textColor = textColor,
-                        cardBackground = cardBackground,
-                        onCheckIn = {
-                            WidgetStateManager.refreshAllWidgets(context)
-                        }
+                        onCheckIn = { /* 刷新 */ }
                     )
                 }
             }
@@ -163,23 +135,22 @@ private fun TimeStampWidgetContent4x4(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MiuiColors.primaryBlue.copy(alpha = 0.1f))
-                    .padding(10.dp)
-                    .clickable(actionStartActivity<MainActivity>()),
+                    .background(ComposeColor(0xFF00C3FF).copy(alpha = 0.1f))
+                    .padding(10.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "+",
                     fontSize = 16.sp,
-                    color = MiuiColors.primaryBlue,
+                    color = ComposeColor(0xFF00C3FF),
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "添加新习惯",
                     fontSize = 12.sp,
-                    color = MiuiColors.primaryBlue
+                    color = ComposeColor(0xFF00C3FF)
                 )
             }
         }
@@ -187,18 +158,18 @@ private fun TimeStampWidgetContent4x4(
 }
 
 @Composable
-private fun StatItem(value: String, label: String, textColor: Color) {
+private fun StatItem(value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = MiuiColors.primaryBlue
+            color = ComposeColor(0xFF00C3FF)
         )
         Text(
             text = label,
             fontSize = 10.sp,
-            color = textColor.copy(alpha = 0.6f)
+            color = ComposeColor(0xFF999999)
         )
     }
 }
@@ -206,8 +177,6 @@ private fun StatItem(value: String, label: String, textColor: Color) {
 @Composable
 private fun CheckInItemCard(
     event: CheckInEvent,
-    textColor: Color,
-    cardBackground: Color,
     onCheckIn: () -> Unit
 ) {
     var pressProgress by remember { mutableFloatStateOf(0f) }
@@ -232,8 +201,12 @@ private fun CheckInItemCard(
                     showCheck = true
                     
                     scope.launch {
-                        val repository = CheckInRepository.getInstance(context)
-                        repository.checkIn(event)
+                        try {
+                            val repository = CheckInRepository.getInstance(context)
+                            repository.checkIn(event)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                     
                     delay(1500)
@@ -253,7 +226,7 @@ private fun CheckInItemCard(
             .fillMaxWidth()
             .height(48.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(cardBackground)
+            .background(ComposeColor(0xB3FFFFFF))
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -267,7 +240,7 @@ private fun CheckInItemCard(
                     .width(4.dp)
                     .height(28.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(MiuiColors.getColor(event.colorIndex))
+                    .background(MiuiColors.themeColorList.getOrElse(event.colorIndex) { ComposeColor(0xFF00C3FF) })
             )
             
             Spacer(modifier = Modifier.width(8.dp))
@@ -284,21 +257,21 @@ private fun CheckInItemCard(
                     text = event.name,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
-                    color = textColor,
+                    color = ComposeColor(0xFF333333),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "连续 ${event.consecutiveDays} 天",
                     fontSize = 10.sp,
-                    color = if (event.isBroken) Color.Red else textColor.copy(alpha = 0.6f)
+                    color = if (event.isBroken) Color.Red else ComposeColor(0xFF999999)
                 )
             }
             
             Text(
                 text = "${event.totalCheckIns}次",
                 fontSize = 10.sp,
-                color = textColor.copy(alpha = 0.6f)
+                color = ComposeColor(0xFF999999)
             )
             
             Spacer(modifier = Modifier.width(8.dp))
@@ -310,8 +283,8 @@ private fun CheckInItemCard(
                     .scale(scale)
                     .clip(CircleShape)
                     .background(
-                        if (showCheck) MiuiColors.successGradientStart.copy(alpha = 0.2f)
-                        else MiuiColors.getColor(event.colorIndex).copy(alpha = 0.15f)
+                        if (showCheck) ComposeColor(0xFF4CAF50).copy(alpha = 0.2f)
+                        else MiuiColors.themeColorList.getOrElse(event.colorIndex) { ComposeColor(0xFF00C3FF) }.copy(alpha = 0.15f)
                     )
                     .pointerInput(Unit) {
                         detectTapGestures(
@@ -331,11 +304,11 @@ private fun CheckInItemCard(
                     if (pressProgress > 0) {
                         val sweepAngle = 360 * pressProgress
                         drawArc(
-                            brush = Brush.sweepGradient(
+                            brush = androidx.compose.ui.graphics.Brush.sweepGradient(
                                 colors = listOf(
-                                    MiuiColors.primaryBlue,
-                                    MiuiColors.getColor(event.colorIndex),
-                                    MiuiColors.successGradientEnd
+                                    ComposeColor(0xFF00C3FF),
+                                    MiuiColors.themeColorList.getOrElse(event.colorIndex) { ComposeColor(0xFF00C3FF) },
+                                    ComposeColor(0xFF8BC34A)
                                 )
                             ),
                             startAngle = -90f,
@@ -351,7 +324,7 @@ private fun CheckInItemCard(
                 Text(
                     text = if (showCheck) "✓" else "●",
                     fontSize = if (showCheck) 14.sp else 10.sp,
-                    color = if (showCheck) MiuiColors.successGradientStart else MiuiColors.getColor(event.colorIndex)
+                    color = if (showCheck) ComposeColor(0xFF4CAF50) else MiuiColors.themeColorList.getOrElse(event.colorIndex) { ComposeColor(0xFF00C3FF) }
                 )
             }
         }

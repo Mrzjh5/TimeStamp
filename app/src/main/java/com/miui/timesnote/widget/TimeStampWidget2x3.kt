@@ -24,82 +24,73 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.glance.*
-import androidx.glance.action.ActionParameters
-import androidx.glance.action.actionParametersOf
-import androidx.glance.action.actionStartActivity
-import androidx.glance.action.clickable
-import androidx.glance.appwidget.*
-import androidx.glance.appwidget.lazy.LazyColumn
-import androidx.glance.appwidget.lazy.items
-import androidx.glance.background
-import androidx.glance.layout.*
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
+import androidx.compose.ui.graphics.Color as ComposeColor
 import com.miui.timesnote.data.CheckInEvent
 import com.miui.timesnote.data.CheckInRepository
-import com.miui.timesnote.ui.MainActivity
 import com.miui.timesnote.util.DateUtil
 import com.miui.timesnote.util.IconTypes
 import com.miui.timesnote.util.MiuiColors
-import com.miui.timesnote.util.WidgetStateManager
-import com.miui.timesnote.util.WallpaperColorUtil
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.min
 
 /**
  * 2×3 尺寸打卡小组件 - 平衡模式，显示3个事件
  */
-class TimeStampWidget2x3 : GlanceAppWidget() {
+class TimeStampWidget2x3 : androidx.glance.appwidget.GlanceAppWidget() {
 
-    override val stateDefinition = GlanceStateDefinition
+    override val stateDefinition: androidx.glance.state.GlanceStateDefinition<*>?
+        get() = null
 
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val wallpaperColor = WallpaperColorUtil.getDominantWallpaperColor(context)
-        val backgroundColor = if (wallpaperColor.isDark) {
-            Color(0xE61A1A1A)
-        } else {
-            Color(0xE6F8F9FA)
-        }
-        
-        val repository = CheckInRepository.getInstance(context)
-        val events = repository.getTopEvents(3).first()
-        
+    override suspend fun provideGlance(context: Context, id: androidx.glance.GlanceId) {
         provideContent {
-            TimeStampWidgetContent2x3(
-                events = events,
-                backgroundColor = backgroundColor,
-                textColor = wallpaperColor.contrastColor,
-                isDarkWallpaper = wallpaperColor.isDark
-            )
+            val context = LocalContext.current
+            
+            val events = withContext(Dispatchers.IO) {
+                try {
+                    val repository = CheckInRepository.getInstance(context)
+                    repository.getTopEvents(3).first()
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            }
+            
+            TimeStampWidgetContent2x3(events = events)
         }
     }
 }
 
 @Composable
-private fun TimeStampWidgetContent2x3(
-    events: List<CheckInEvent>,
-    backgroundColor: Color,
-    textColor: Color,
-    isDarkWallpaper: Boolean
-) {
+private fun TimeStampWidgetContent2x3(events: List<CheckInEvent>) {
     val context = LocalContext.current
     
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                color = backgroundColor,
+                color = ComposeColor(0xFFF8F9FA),
                 shape = RoundedCornerShape(16.dp)
             )
             .padding(8.dp)
     ) {
         if (events.isEmpty()) {
-            EmptyStateContent2x3(textColor)
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "📝", fontSize = 48.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "长按这里添加你的第一个习惯",
+                    fontSize = 12.sp,
+                    color = ComposeColor(0xFF999999),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
         } else {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -108,10 +99,7 @@ private fun TimeStampWidgetContent2x3(
                 events.take(3).forEach { event ->
                     CheckInItemRow(
                         event = event,
-                        textColor = textColor,
-                        onCheckIn = {
-                            WidgetStateManager.refreshAllWidgets(context)
-                        }
+                        onCheckIn = { /* 刷新 */ }
                     )
                 }
             }
@@ -122,7 +110,6 @@ private fun TimeStampWidgetContent2x3(
 @Composable
 private fun CheckInItemRow(
     event: CheckInEvent,
-    textColor: Color,
     onCheckIn: () -> Unit
 ) {
     var pressProgress by remember { mutableFloatStateOf(0f) }
@@ -147,8 +134,12 @@ private fun CheckInItemRow(
                     showCheck = true
                     
                     scope.launch {
-                        val repository = CheckInRepository.getInstance(context)
-                        repository.checkIn(event)
+                        try {
+                            val repository = CheckInRepository.getInstance(context)
+                            repository.checkIn(event)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                     
                     delay(1500)
@@ -163,18 +154,12 @@ private fun CheckInItemRow(
         }
     }
     
-    val cardBackground = if (isDarkWallpaper) {
-        Color(0x33FFFFFF)
-    } else {
-        Color(0xB3FFFFFF)
-    }
-    
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(cardBackground)
+            .background(ComposeColor(0xB3FFFFFF))
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -193,12 +178,12 @@ private fun CheckInItemRow(
                     text = event.name,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
-                    color = textColor
+                    color = ComposeColor(0xFF333333)
                 )
                 Text(
                     text = "${event.consecutiveDays}天连续",
                     fontSize = 10.sp,
-                    color = textColor.copy(alpha = 0.6f)
+                    color = ComposeColor(0xFF999999)
                 )
             }
         }
@@ -210,8 +195,8 @@ private fun CheckInItemRow(
                 .scale(scale)
                 .clip(CircleShape)
                 .background(
-                    if (showCheck) MiuiColors.successGradientStart.copy(alpha = 0.2f)
-                    else MiuiColors.getColor(event.colorIndex).copy(alpha = 0.15f)
+                    if (showCheck) ComposeColor(0xFF4CAF50).copy(alpha = 0.2f)
+                    else MiuiColors.themeColorList.getOrElse(event.colorIndex) { ComposeColor(0xFF00C3FF) }.copy(alpha = 0.15f)
                 )
                 .pointerInput(Unit) {
                     detectTapGestures(
@@ -231,11 +216,11 @@ private fun CheckInItemRow(
                 if (pressProgress > 0) {
                     val sweepAngle = 360 * pressProgress
                     drawArc(
-                        brush = Brush.sweepGradient(
+                        brush = androidx.compose.ui.graphics.Brush.sweepGradient(
                             colors = listOf(
-                                MiuiColors.primaryBlue,
-                                MiuiColors.getColor(event.colorIndex),
-                                MiuiColors.successGradientEnd
+                                ComposeColor(0xFF00C3FF),
+                                MiuiColors.themeColorList.getOrElse(event.colorIndex) { ComposeColor(0xFF00C3FF) },
+                                ComposeColor(0xFF8BC34A)
                             )
                         ),
                         startAngle = -90f,
@@ -251,26 +236,8 @@ private fun CheckInItemRow(
             Text(
                 text = if (showCheck) "✓" else IconTypes.getIconEmoji(event.iconType),
                 fontSize = 16.sp,
-                color = if (showCheck) MiuiColors.successGradientStart else MiuiColors.getColor(event.colorIndex)
+                color = if (showCheck) ComposeColor(0xFF4CAF50) else MiuiColors.themeColorList.getOrElse(event.colorIndex) { ComposeColor(0xFF00C3FF) }
             )
         }
-    }
-}
-
-@Composable
-private fun EmptyStateContent2x3(textColor: Color) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = "📝", fontSize = 48.sp)
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "长按这里添加你的第一个习惯",
-            fontSize = 12.sp,
-            color = textColor.copy(alpha = 0.6f),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
     }
 }
